@@ -6,9 +6,21 @@ Plan and track goals inside Obsidian. Add a compact strip under any goal heading
 
 Requires **Obsidian Desktop 1.15.1 or later**. The plugin includes its own commands, views, and styling, with no QuickAdd or Dataview dependency.
 
-1. Download [`main.js`](main.js), [`manifest.json`](manifest.json), and [`styles.css`](styles.css) from this repository. Use **Download raw file** on each file page, or download the repository ZIP and extract the three files.
-2. Open your vault's configuration folder, usually `.obsidian`. Create `plugins/goal-metadata/` inside it if needed and put all three files there.
-3. Reopen the vault. In **Settings → Community plugins**, enable **Goal Metadata**. Community plugins must be allowed for that vault.
+### From Obsidian’s Community plugins
+
+See the [Goal Metadata listing](https://community.obsidian.md/plugins/goal-metadata) in the Obsidian Community directory. When installation is available, follow these steps in Obsidian:
+
+1. Open **Settings → Community plugins** and select **Turn on community plugins** if prompted.
+2. Select **Browse** and search for **Goal Metadata** by **not-really-rob**.
+3. Open the plugin, select **Install**, then select **Enable**.
+
+If the plugin does not appear in search or **Install** is unavailable, use the manual installation below.
+
+### Manual installation
+
+1. Download the **Goal Metadata ZIP** from the [latest GitHub release](https://github.com/not-really-rob/goal-metadata/releases/latest) and extract it. The release also provides `main.js`, `manifest.json`, and `styles.css` individually.
+2. Copy the extracted `goal-metadata` folder into your vault’s `.obsidian/plugins/` folder. If downloading the files individually, place all three in `.obsidian/plugins/goal-metadata/`. Use the vault’s configured folder in place of `.obsidian` if it differs.
+3. Reopen the vault and enable **Goal Metadata** in **Settings → Community plugins**.
 
 The installed path should look like this.
 
@@ -65,7 +77,9 @@ To reuse a setup, enter a name and choose **Save as new configuration**. Then ru
 
 ## Update or uninstall
 
-To update, replace `main.js`, `manifest.json`, and `styles.css` in the installed folder and reopen the vault. Keep `data.json` to retain configurations, saved views, dashboard definitions, and note assignments.
+For Community plugin updates, open **Settings → Community plugins**, select **Check for updates**, and update **Goal Metadata** when a new version is available.
+
+For manual updates, replace `main.js`, `manifest.json`, and `styles.css` with the files from the latest release and reopen the vault. Keep `data.json` to retain configurations, saved views, dashboard definitions, and note assignments.
 
 To uninstall, disable **Goal Metadata** and remove its plugin folder. Goal strips remain in your Markdown notes.
 
