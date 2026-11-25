@@ -819,11 +819,47 @@ class GoalDashboardView extends ItemView {
     }
 }
 
+function watchAssignmentProperties(doc) {
+    const selector = ".metadata-container";
+    const className = "goal-metadata-properties-only";
+    const assignmentKeys = Object.values(noteAssignmentTypes).map(({ property }) => property);
+    const update = container => {
+        const properties = [...container.querySelectorAll(".metadata-property")];
+        const onlyAssignments = properties.length > 0 &&
+            properties.every(row => assignmentKeys.includes(row.getAttribute("data-property-key")));
+        container.classList.toggle(className, onlyAssignments);
+    };
+
+    doc.body.querySelectorAll(selector).forEach(update);
+    const observer = new doc.defaultView.MutationObserver(records => {
+        const containers = new Set();
+        for (const { target, addedNodes } of records) {
+            const container = target.closest(selector);
+            if (container) containers.add(container);
+            for (const node of addedNodes) {
+                if (node.nodeType !== 1) continue;
+                if (node.matches(selector)) containers.add(node);
+                node.querySelectorAll(selector).forEach(element => containers.add(element));
+            }
+        }
+        containers.forEach(update);
+    });
+    observer.observe(doc.body, {
+        childList: true, subtree: true, attributes: true, attributeFilter: ["data-property-key"],
+    });
+
+    return () => {
+        observer.disconnect();
+        doc.body.querySelectorAll("." + className).forEach(container => container.classList.remove(className));
+    };
+}
+
 class GoalMetadataPlugin extends Plugin {
     async onload() {
         const data = await this.loadData();
         this.data = data ?? {};
         this.styles = new Map();
+        this.assignmentPropertyWatchers = new Map();
         const workspace = this.app.workspace;
         this.attachStyles(workspace.containerEl.ownerDocument);
         workspace.iterateAllLeaves(leaf => this.attachStyles(leaf.containerEl.ownerDocument));
@@ -831,10 +867,14 @@ class GoalMetadataPlugin extends Plugin {
         this.registerEvent(workspace.on("window-close", (_, win) => {
             this.styles.get(win.document)?.remove();
             this.styles.delete(win.document);
+            this.assignmentPropertyWatchers.get(win.document)?.();
+            this.assignmentPropertyWatchers.delete(win.document);
         }));
         this.register(() => {
             for (const style of this.styles.values()) style.remove();
             this.styles.clear();
+            for (const stop of this.assignmentPropertyWatchers.values()) stop();
+            this.assignmentPropertyWatchers.clear();
         });
         this.registerEvent(this.app.vault.on("rename", (file, oldPath) =>
             this.remapNoteAssignments(oldPath, file.path)));
@@ -1076,6 +1116,7 @@ class GoalMetadataPlugin extends Plugin {
     attachStyles(doc) {
         if (this.styles.has(doc)) return;
         this.styles.set(doc, node(doc.head, "style"));
+        this.assignmentPropertyWatchers.set(doc, watchAssignmentProperties(doc));
         this.updateStyles();
     }
 
