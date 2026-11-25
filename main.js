@@ -124,7 +124,6 @@ function webUrl(value) {
         if (/^https?:\/\//i.test(value) && ["https:", "http:"].includes(url.protocol) &&
             !url.username && !url.password && !/\s/.test(value)) return url.href;
     } catch {
-        // The caller reports the affected field.
     }
     return null;
 }
@@ -204,7 +203,6 @@ function renderStrip(values, profile) {
 }
 
 function parseStrip(html, profile) {
-    // The original preview used the same classes without aria-hidden.
     const priority = html.match(/class="goal-priority"\s+data-priority="([1-5])"\s*>/);
     if (!priority) throw new Error("The metadata strip has an unrecognized priority.");
     const assigned = html.match(/^<div class="goal-meta"[^>]*?\sdata-goal-dashboard="([^"]*)"/);
@@ -220,7 +218,6 @@ function parseStrip(html, profile) {
     const anchors = [...html.matchAll(/<a\s+href="([^"]+)"[^>]*>\s*<span class="goal-icon goal-icon-(docs|jira|repo)"[^>]*><\/span>[^<]*<\/a>/g)];
     for (const match of anchors) {
         const [, url, key] = match;
-        // Unfilled URL placeholders from the preview carry no link.
         if (/^(?:DOCUMENTATION|JIRA|REPOSITORY)_URL$/.test(url)) continue;
         meta[key] = [meta[key], decodeHtml(url)].filter(Boolean).join("\n");
     }
@@ -303,7 +300,6 @@ function findGoal(source, cursor, all, profile) {
     const inSection = heading => heading.start <= cursor && (cursor < heading.end || heading.end === source.length);
     const goal = goals.findLast(inSection);
     if (goal) return goal;
-    // In notes without a goal structure, a top-level heading can start a goal.
     if (!goals.length) return all.findLast(heading => heading.level === 1 && inSection(heading));
     return undefined;
 }
@@ -1076,7 +1072,6 @@ class GoalMetadataPlugin extends Plugin {
                 const path = file.path;
                 if (this.app.vault.getAbstractFileByPath(path) !== file) throw new Error("The note is no longer in this vault.");
                 const previous = Object.hasOwn(assignments, path) ? assignments[path] : undefined;
-                // An explicit default takes precedence if updating legacy frontmatter fails.
                 const assigned = item?.id ?? (storedProperty ? "" : undefined);
                 if (previous === assigned) return null;
                 if (assigned === undefined) delete assignments[path];

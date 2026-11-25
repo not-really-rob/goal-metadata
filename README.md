@@ -18,8 +18,8 @@ If the plugin does not appear in search or **Install** is unavailable, use the m
 
 ### Manual installation
 
-1. Download the **Goal Metadata ZIP** from the [latest GitHub release](https://github.com/not-really-rob/goal-metadata/releases/latest) and extract it. The release also provides `main.js`, `manifest.json`, and `styles.css` individually.
-2. Copy the extracted `goal-metadata` folder into your vault’s `.obsidian/plugins/` folder. If downloading the files individually, place all three in `.obsidian/plugins/goal-metadata/`. Use the vault’s configured folder in place of `.obsidian` if it differs.
+1. Under **Assets** on the [latest GitHub release](https://github.com/not-really-rob/goal-metadata/releases/latest), download `main.js`, `manifest.json`, and `styles.css`.
+2. Place all three files in your vault’s `.obsidian/plugins/goal-metadata/` folder, creating it if needed. Use the vault’s configured folder in place of `.obsidian` if it differs.
 3. Reopen the vault and enable **Goal Metadata** in **Settings → Community plugins**.
 
 The installed path should look like this.
