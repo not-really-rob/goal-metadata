@@ -98,153 +98,8 @@
     font-weight: 500;
 }
 
-.goal-tool-field > :is(input, select, textarea),
-.goal-tool-output {
+.goal-tool-field > :is(input, select, textarea) {
     width: 100%;
-}
-
-.goal-tool-output {
-    display: block;
-    font-family: var(--font-monospace);
-}
-
-.goal-generator {
-    display: grid;
-    gap: 12px;
-    padding: 16px;
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 16px;
-    background: var(--background-primary);
-}
-
-.goal-generator-priority {
-    min-inline-size: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-}
-
-.goal-generator-priority legend {
-    padding: 0;
-    margin-bottom: 4px;
-    font-size: 0.875em;
-    font-weight: 500;
-}
-
-.goal-generator-segments {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 2px;
-    padding: 2px;
-    border-radius: 10px;
-    background: var(--background-secondary);
-}
-
-.goal-generator-segments label {
-    position: relative;
-    min-width: 0;
-}
-
-.goal-generator-segments input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-}
-
-.goal-generator-segments .goal-priority {
-    justify-content: center;
-    width: 100%;
-    min-height: 32px;
-    font-size: 0.875em;
-    cursor: pointer;
-}
-
-.goal-generator-segments input:not(:checked) + .goal-priority {
-    background: transparent;
-    color: var(--text-muted);
-}
-
-.goal-generator-segments input:not(:checked) + .goal-priority:hover {
-    background: var(--background-modifier-hover);
-}
-
-.goal-generator-segments input:focus-visible + .goal-priority {
-    outline: 2px solid var(--interactive-accent);
-    outline-offset: -2px;
-}
-
-.goal-generator-pair,
-.goal-generator-details {
-    display: grid;
-    gap: 12px;
-}
-
-.goal-generator-pair {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
-}
-
-.goal-generator .goal-tool-field {
-    min-width: 0;
-}
-
-.goal-generator .goal-tool-field > span,
-.goal-generator .goal-generator-caption {
-    font-size: 0.875em;
-}
-
-.goal-generator .goal-tool-field > :is(input, select, textarea) {
-    min-height: 40px;
-}
-
-.goal-generator > hr {
-    width: 100%;
-    margin: 4px 0;
-}
-
-.goal-generator .goal-generator-caption {
-    margin: 0;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.goal-generator .goal-tool-preview {
-    padding: 12px;
-    border-radius: 10px;
-    background: var(--background-secondary);
-}
-
-.goal-generator .goal-tool-preview > :is(h3, h4, p) {
-    margin: 0;
-}
-
-.goal-generator .goal-tool-preview > h3 {
-    font-size: 1.25em;
-    margin-bottom: 4px;
-}
-
-.goal-generator .goal-tool-preview .goal-meta {
-    margin: 0 0 16px;
-}
-
-.goal-generator .goal-tool-preview > h4 {
-    font-size: 1.125em;
-}
-
-.goal-generator .goal-tool-preview > p {
-    margin-top: 4px;
-}
-
-.goal-generator .goal-generator-copy {
-    width: 100%;
-    min-height: 36px;
-    border-radius: 999px;
-}
-
-.goal-generator summary {
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 0.875em;
 }
 
 .goal-tool-message {
@@ -300,14 +155,29 @@
     gap: 8px;
 }
 
-.goal-generator-configuration {
-    margin-bottom: 12px;
+
+.goal-rating-palette {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition: grid-template-rows 180ms ease, visibility 180ms;
 }
 
+.goal-rating-palette.is-open {
+    grid-template-rows: 1fr;
+    visibility: visible;
+}
 
-.goal-rating-palette summary {
-    cursor: pointer;
-    margin: 8px 0 12px;
+.goal-rating-palette-content {
+    overflow: hidden;
+    min-height: 0;
+    padding-inline-start: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .goal-rating-palette {
+        transition: none;
+    }
 }
 
 .goal-dashboard-saved-views {
@@ -321,4 +191,11 @@
 
 .markdown-reading-view .metadata-container:has(.metadata-property:is([data-property-key="goal-dashboard"], [data-property-key="goal-configuration"])):not(:has(.metadata-property:not(:is([data-property-key="goal-dashboard"], [data-property-key="goal-configuration"])))) {
     display: none;
+}
+
+.goal-configuration-delete-preview:not(:empty) {
+    border-inline-start: 3px solid var(--text-warning);
+    padding: 8px 16px;
+    margin-block: 8px 16px;
+    overflow-wrap: anywhere;
 }

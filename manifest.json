@@ -1,7 +1,7 @@
 {
   "id": "goal-metadata",
   "name": "Goal Metadata",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "minAppVersion": "1.15.1",
   "description": "Create goals, track dependencies and ratings, and save dashboard views with parent rollups.",
   "isDesktopOnly": true,

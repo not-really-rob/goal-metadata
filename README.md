@@ -1,69 +1,77 @@
 # Goal Metadata for Obsidian
 
-Add a compact, two-row metadata strip under a goal heading. The strip shows priority, target quarter, owner, status, and optional links to documentation, work items, and repositories.
+Plan and track goals inside Obsidian. Add a compact strip under any goal heading with priority, target quarter, owner, status, and links. Add optional Impact, Criticality, and Effort ratings, track dependencies, and roll goals up into dashboards.
 
 ## Install
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from this repository.
-2. Put the three files in `.obsidian/plugins/goal-metadata/` inside your vault. Create the folder if needed. If your vault uses a custom configuration folder, use its `plugins` folder.
-3. Reopen the vault. In **Settings → Community plugins**, find and enable **Goal Metadata**. If the vault uses Restricted Mode, follow your team’s policy for enabling community plugins.
+Requires **Obsidian Desktop 1.15.1 or later**. The plugin includes its own commands, views, and styling, with no QuickAdd or Dataview dependency.
 
-This package targets Obsidian Desktop 1.15.1 or later. Styling comes with the plugin. QuickAdd and Dataview are optional and can stay installed for other workflows.
+1. Download [`main.js`](main.js), [`manifest.json`](manifest.json), and [`styles.css`](styles.css) from this repository. Use **Download raw file** on each file page, or download the repository ZIP and extract the three files.
+2. Open your vault's configuration folder, usually `.obsidian`. Create `plugins/goal-metadata/` inside it if needed and put all three files there.
+3. Reopen the vault. In **Settings → Community plugins**, enable **Goal Metadata**. Community plugins must be allowed for that vault.
 
-## Use
+The installed path should look like this.
 
-Open the command palette and search for **Goal Metadata**.
+```text
+Your vault/
+└── .obsidian/
+    └── plugins/
+        └── goal-metadata/
+            ├── main.js
+            ├── manifest.json
+            └── styles.css
+```
 
-- **Insert New Goal** adds the strip and a set of goal headings to the current note. **Insert Goal Metadata** adds just the strip to an existing goal. Run these in Editing view.
-- **Edit Goal Metadata** changes the full strip. The individual update and link commands change one field at a time. Enter one HTTP(S) URL per line. A new strip defaults to the current calendar quarter and year, and you can select **TBD**.
-- **Add Goal Decision Log** adds dated entries. **Add Goal Review Checklist** adds a checklist.
-- **Open Goal Metadata Generator** opens a live preview with a **Copy metadata HTML** button. Paste the HTML below a goal heading, above **Problem**.
-- **Generate Goals Dashboard** opens a vault-wide list. Filter by priority, quarter, owner, or status. Use **Refresh** after editing goals.
+## Quick start
 
-Strips from the earlier QuickAdd setup work with this plugin. If you have that setup, use the **Goal Metadata** entries in the command palette to distinguish them from the old **QuickAdd** entries. Generator and dashboard tabs are provided by the plugin. You can keep any older generator and dashboard notes for reference.
+1. Open a Markdown note in Editing view.
+2. Open the command palette (**⌘P** on macOS, **Ctrl+P** on Windows or Linux) and run **Goal Metadata: Insert New Goal**. If the goal heading already exists, put the cursor in that section and run **Insert Goal Metadata**.
+3. Fill in the fields and save. The target defaults to the current calendar quarter and year unless you’ve configured a different default. Choose **TBD** for an unscheduled goal.
+4. Switch to Reading view to see the strip. Run **Edit Goal Metadata** to update it later, or use a field-specific command such as **Update Goal Quarter**.
 
-## Customize the defaults
+![Two example goals in Obsidian Reading view, with priority and rating badges, links, and a dependency](docs/screenshots/goal-strip.jpg)
 
-Open **Settings → Goal Metadata**. Set names, badge backgrounds, and text colors for P1–P5. The form uses **Documentation**, **Work Item**, and **Repository**. The default link text is **Design Notes**, **Jira Epic**, and **GitHub Repository**. You can rename the link text, set default priorities for new goals and the generator, change the owner and status options, and choose the current quarter, a fixed quarter, or TBD. The goal template settings control section headings and the decision log and review checklist.
+### Extend a goal
 
-Select **Save changes** to apply your preferences. Badge colors apply to existing strips as well. To update the labels in an existing strip, run **Edit Goal Metadata** and save. Existing goal values and dashboard assignments stay in place. Reopen the generator or refresh the dashboard if either was already open. **Reset to defaults** loads the original preferences into the form for review before saving.
+- **Add Goal Decision Log** records dated decisions with an optional rationale and follow-up.
+- **Add Goal Review Checklist** adds the checklist from the note’s configuration.
+- The documentation, work item, and repository fields accept one HTTP or HTTPS URL per line. Their default link text is **Design Notes**, **Jira Epic**, and **GitHub Repository**.
 
-## Save and select a configuration
+## Dashboards and dependencies
 
-1. Open **Settings → Goal Metadata**, choose a configuration to start from, and customize its defaults. Enter a **Configuration name** and click **Save as new configuration**. To update a saved configuration, select its name and click **Save changes**.
-2. Open a goal note and run **Set Note Goal Configuration**. Select the named configuration, or choose **Vault default** to inherit the vault's settings.
-3. Use **Insert New Goal**, **Insert Goal Metadata**, or **Edit Goal Metadata**. New and edited strips use the selected configuration. Existing values, dashboard assignments, and HTML stay in place until you edit a strip. The generator also has a configuration selector once you have saved a named configuration.
+Run **Generate Goals Dashboard** to see all goals with metadata in the vault. Filter by priority, quarter, owner, status, or whether the goal is blocked. Rating filters appear when the vault contains rated goals. Click a goal title to jump to its section, **Refresh** to rescan the vault, or **Save view** to store a dashboard and its filters. Restore that combination from **Saved view**. Saving with the same name updates the stored view.
 
-Under **Optional rankings**, enable **Impact**, **Criticality**, or **Effort** in any combination. Each uses 1 (highest) through 5 (lowest), or **None**. Expand a ranking’s badge colors to set the text and background for each rank. The dashboard adds columns and filters when ratings are present. Saved ratings survive configuration changes. To clear one, select **None** in **Edit Goal Metadata**.
+![Goals Dashboard showing three example goals, rating filters, and a pending dependency](docs/screenshots/goals-dashboard.jpg)
 
-## Dependencies and saved views
+### Roll up goals by folder
 
-Enter one goal dependency per line in **Edit Goal Metadata**, for example `[[2027 Planning/Q1/Infrastructure#Publish API]]`. Use `[[#Publish API]]` for a goal in the same note. The dashboard shows whether each referenced goal is complete, pending, or unresolved. The **Blocked** filter includes goals whose status is Blocked and goals with any pending or unresolved dependency. Set the completion status names in **Settings → Goal Metadata**.
+1. Run **Manage Goals Dashboards** and create a dashboard called `2027 Planning`, scoped to the vault folder `2027 Planning`.
+2. Put goal notes in that folder or its subfolders. For a separate quarterly dashboard, create one scoped to `2027 Planning/Q1`.
+3. Leave the quarterly dashboard’s **Parent dashboard** on **Automatic (from folder)** to roll it up to `2027 Planning`. Choose a specific parent or **No parent** to change that behavior.
 
-To keep a dashboard scope and its filters, set them in the dashboard, then click **Save view** and name it. Restore them from **Saved view**. Saving again with the same name updates that view.
+For an individual goal, **Set Goal Dashboard** overrides the dashboard. Otherwise, goals inherit the note’s assignment from **Set Note Goals Dashboard**, then the most specific configured folder. **All goals** also includes goals without a dashboard.
 
-## Note assignments and properties
+### Track blockers
 
-**Set Note Goal Configuration** and **Set Note Goals Dashboard** save assignments in the plugin's vault settings. For **Note property**, choose **Plugin settings only** to keep the assignment out of the note, or **Show name in note properties** to write the assigned configuration or dashboard name for an explicit selection. New assignments default to plugin settings only. To update a legacy GUID, reopen the assignment command and save it with **Show name in note properties**. Legacy IDs and readable names can both be read from notes, and a stored assignment takes precedence.
+Enter one dependency per line in **Edit Goal Metadata**. Use `[[Planning/Infrastructure#Publish API]]` for another note, or `[[#Publish API]]` for another goal in the same note. The dashboard shows whether each dependency is complete, pending, or unresolved. The **Blocked** filter includes goals explicitly marked Blocked and goals with a pending or unresolved dependency. Configure which statuses satisfy dependencies in **Settings → Goal Metadata**.
 
-These two plugin properties are hidden in Reading view, and other note properties remain visible. Assignments stored in plugin settings follow notes when moved or renamed in Obsidian. If you rename a configuration or dashboard, the assignment stays linked by its internal ID. To refresh a displayed property name, re-save that assignment.
+## Configurations and note assignments
 
-## Set up dashboards and rollups
+Open **Settings → Goal Metadata** to change priority names and colors, link text, owner and status defaults, the target quarter, template headings, and review checklist items. Impact, Criticality, and Effort are independently optional, with their own badge colors. Each uses **1 (highest)** through **5 (lowest)** or **None**. Turn on a ranking to reveal its color controls directly below the toggle.
 
-1. Run **Goal Metadata → Manage Goals Dashboards** and choose **Create a dashboard**. Name it `2027 Planning` and set **Vault folder** to `2027 Planning`. Folder paths are relative to the vault.
-2. Put goal notes in `2027 Planning/Q1` through `2027 Planning/Q4`. They appear in the planning dashboard even if you never create separate quarterly dashboards.
-3. For a separate Q1 dashboard, create one scoped to `2027 Planning/Q1`. Leave **Parent dashboard** on **Automatic (from folder)** to roll it up into `2027 Planning`. In the same field, choose a different dashboard or **No parent** any time you create or edit a dashboard. Leave **Vault folder** blank for a dashboard that only receives explicit assignments or child dashboard rollups.
-4. Open **Generate Goals Dashboard** and pick the dashboard you want. **All goals** shows every goal, including goals without an assignment.
+To reuse a setup, enter a name and choose **Save as new configuration**. Then run **Set Note Goal Configuration** in any note to use it for new or edited goals. Choose **Vault default** to inherit your general settings. Save an existing strip with **Edit Goal Metadata** to apply updated labels or switch its configuration. To remove a saved configuration, select it in Settings and confirm **Delete configuration**. The confirmation lists affected notes and shows which fields, colors, labels, and other settings will change. Assigned notes fall back to the vault default and retain their existing goal text and dashboard assignments.
 
-The plugin assigns each goal to one dashboard. A **Set Goal Dashboard** override takes priority, followed by **Set Note Goals Dashboard**, followed by the closest folder-scoped dashboard. The note setting applies to every goal in that note unless a goal has its own override. Choose **Inherit from note or folder** on a goal or **Use folder default** on a note to clear the override. A dashboard includes its directly assigned goals and the goals in all its descendants. Refresh after editing goals or assignments.
+**Set Note Goal Configuration** and **Set Note Goals Dashboard** both offer **Plugin settings only** or **Show name in note properties**. The latter writes the readable name for an explicit assignment. You can re-save an older assignment to replace its ID with the name. These plugin properties are hidden in Reading view.
 
-Keep the plugin’s `data.json` in the vault config if you share or migrate a configured dashboard hierarchy. It stores dashboard definitions, saved views, configurations, note assignments, and vault defaults. The installation ZIP starts with an empty dashboard list.
+## Update or uninstall
 
-## Remove or upgrade
+To update, replace `main.js`, `manifest.json`, and `styles.css` in the installed folder and reopen the vault. Keep `data.json` to retain configurations, saved views, dashboard definitions, and note assignments.
 
-To remove the plugin, disable **Goal Metadata** and remove its folder from `.obsidian/plugins/`. The goal notes and their metadata HTML stay in your vault. To upgrade, replace `main.js`, `manifest.json`, and `styles.css` in the installed folder and reopen the vault. Keep `data.json` to preserve your dashboard settings.
+To uninstall, disable **Goal Metadata** and remove its plugin folder. Goal strips remain in your Markdown notes.
 
-[Obsidian manual installation reference](https://github.com/obsidianmd/obsidian-sample-plugin#manually-installing-the-plugin)
+## Contributing
+
+Repository write access is by invitation. Changes to the default branch go through pull requests and maintainer review.
 
 ## License
 

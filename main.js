@@ -29,7 +29,6 @@ const factoryPreferences = {
     completeStatuses: ["Complete", "Completed", "Done"],
     statuses: ["Proposed", "Planned", "In Progress", "Blocked", "On Hold", "Complete", "Cancelled"],
     priority: "3",
-    generatorPriority: "1",
     status: "Proposed",
     owner: "Unassigned",
     quarterMode: "current",
@@ -77,7 +76,6 @@ function normalizePreferences(data = {}) {
             [key, text(data.linkLabels?.[key], label)])),
         statuses,
         priority: /^[1-5]$/.test(data.priority) ? String(data.priority) : defaults.priority,
-        generatorPriority: /^[1-5]$/.test(data.generatorPriority) ? String(data.generatorPriority) : defaults.generatorPriority,
         status: statuses.includes(data.status) ? data.status : statuses[0],
         owner: text(data.owner, defaults.owner),
         quarterMode: data.quarterMode === "tbd" || (data.quarterMode === "fixed" && fixedQuarter) ? data.quarterMode : "current",
@@ -384,86 +382,6 @@ function errorMessage(parent) {
     const element = node(parent, "p", "", "goal-tool-message");
     element.setAttribute("role", "status");
     return element;
-}
-
-function generator(container, profile) {
-    const { fields, defaults, headings } = profile;
-    const tool = node(container, "form", undefined, "goal-tool goal-generator");
-    if (profile.id) tool.setAttribute("data-goal-profile", profile.id);
-    tool.addEventListener("submit", event => event.preventDefault());
-    const priority = node(tool, "fieldset", undefined, "goal-generator-priority");
-    node(priority, "legend", "Priority");
-    const segments = node(priority, "div", undefined, "goal-generator-segments");
-    const radios = fields[0].options.map(([value, label]) => {
-        const segment = node(segments, "label");
-        const radio = node(segment, "input");
-        radio.type = "radio";
-        radio.name = "goal-priority";
-        radio.value = value;
-        radio.checked = value === profile.generatorPriority;
-        radio.setAttribute("aria-label", label);
-        node(segment, "span", `P${value}`, "goal-priority").dataset.priority = value;
-        return radio;
-    });
-    const pair = node(tool, "div", undefined, "goal-generator-pair");
-    const getPlanning = controlsFor(pair, fields.filter(field => ["quarter", "status"].includes(field.key)), defaults);
-    const details = node(tool, "div", undefined, "goal-generator-details");
-    const getDetails = controlsFor(details, fields.filter(field => field.key === "owner" || field.link || field.multiline), defaults);
-    const ratingFields = profile.ratingFields.filter(({ key }) => profile.ratings[key]);
-    const getRatings = ratingFields.length
-        ? controlsFor(node(tool, "div", undefined, "goal-generator-pair"), ratingFields, {})
-        : () => ({});
-    node(tool, "hr");
-    node(tool, "h2", "Live preview", "goal-generator-caption");
-    const preview = node(tool, "div", undefined, "goal-tool-preview");
-    node(preview, "h3", "Goal Title");
-    const strip = node(preview, "div");
-    node(preview, "h4", headings[0]);
-    node(preview, "p", "Goal description goes here.");
-    const button = node(tool, "button", "Copy metadata HTML", "goal-generator-copy");
-    button.type = "button";
-    const message = errorMessage(tool);
-    const source = node(tool, "details");
-    node(source, "summary", "View metadata HTML");
-    const output = node(source, "textarea", undefined, "goal-tool-output");
-    output.readOnly = true;
-    output.rows = 8;
-    output.setAttribute("aria-label", "Metadata HTML");
-    function update() {
-        message.textContent = "";
-        try {
-            output.value = renderStrip({
-                ...getPlanning(),
-                ...getDetails(),
-                ...getRatings(),
-                priority: radios.find(radio => radio.checked).value,
-            }, profile);
-            strip.innerHTML = output.value;
-            for (const link of strip.querySelectorAll("a:not(.goal-dependency)")) {
-                link.target = "_blank";
-                link.rel = "noopener noreferrer";
-            }
-            button.disabled = false;
-        } catch (error) {
-            strip.replaceChildren();
-            output.value = "";
-            button.disabled = true;
-            message.textContent = error.message;
-        }
-    }
-    tool.addEventListener("input", update);
-    button.addEventListener("click", async () => {
-        try {
-            await tool.ownerDocument.defaultView.navigator.clipboard.writeText(output.value);
-            message.textContent = "Metadata HTML copied.";
-        } catch {
-            source.open = true;
-            output.focus();
-            output.select();
-            message.textContent = "HTML selected. Press ⌘C or Ctrl+C to copy.";
-        }
-    });
-    update();
 }
 
 function folderDashboard(path, dashboards) {
@@ -821,112 +739,84 @@ async function runCommand(params, action) {
     }
 }
 
-const toolViews = {
-    generator: { type: "goal-metadata-generator", title: "Goal Metadata Generator", icon: "list-plus" },
-    dashboard: { type: "goal-metadata-dashboard", title: "Goals Dashboard", icon: "layout-dashboard" },
-};
+const dashboardViewType = "goal-metadata-dashboard";
 
-class GoalToolView extends ItemView {
+class GoalDashboardView extends ItemView {
     constructor(leaf, plugin) {
         super(leaf);
         this.plugin = plugin;
         this.selection = { id: "" };
     }
 
-    get kind() { return this.constructor.kind; }
-    getViewType() { return toolViews[this.kind].type; }
-    getDisplayText() { return toolViews[this.kind].title; }
-    getIcon() { return toolViews[this.kind].icon; }
+    getViewType() { return dashboardViewType; }
+    getDisplayText() { return "Goals Dashboard"; }
+    getIcon() { return "layout-dashboard"; }
 
     async onOpen() {
         const content = node(this.contentEl, "div", undefined, "goal-metadata-view");
         node(content, "h2", this.getDisplayText());
-        if (this.kind === "generator") {
-            node(content, "p", "Copy the HTML and paste it on a blank line under a goal heading, above the first goal section.");
-            const options = this.plugin.configurationOptions();
-            let select;
-            if (options.length > 1) {
-                const chooser = node(content, "div", undefined, "goal-generator-configuration");
-                select = makeControl(chooser, { label: "Configuration", options }, this.plugin.generatorProfileId);
-            }
-            const holder = node(content, "div");
-            if (select) this.registerDomEvent(select, "change", () => {
-                holder.replaceChildren();
-                generator(holder, this.plugin.profileById(select.value));
-            });
-            generator(holder, this.plugin.profileById(this.plugin.generatorProfileId));
-        } else {
-            const actions = node(content, "div", undefined, "goal-metadata-dashboard-actions");
-            const manage = node(actions, "button", "Manage dashboards");
-            manage.type = "button";
-            const refresh = node(actions, "button", "Refresh");
-            refresh.type = "button";
-            const save = node(actions, "button", "Save view");
-            save.type = "button";
-            const viewPicker = node(content, "div", undefined, "goal-dashboard-saved-views");
-            const body = node(content, "div", undefined, "goal-metadata-dashboard-body");
-            let picker;
-            const update = async () => {
-                if (refresh.disabled) return;
-                refresh.disabled = true;
-                save.disabled = true;
-                if (picker) picker.disabled = true;
-                body.replaceChildren();
-                try {
-                    await dashboard({
-                        app: this.plugin.app,
-                        container: body,
-                        dashboards: this.plugin.dashboards,
-                        selection: this.selection,
-                        profile: this.plugin.profile,
-                        profiles: this.plugin.savedProfiles(),
-                        noteDashboardFor: file => this.plugin.noteAssignment(file, "dashboard"),
-                    });
-                } catch (error) {
-                    body.replaceChildren();
-                    errorMessage(body).textContent = error.message;
-                } finally {
-                    refresh.disabled = false;
-                    save.disabled = false;
-                    if (picker) picker.disabled = false;
-                }
-            };
-            const showPicker = () => {
-                viewPicker.replaceChildren();
-                const views = this.plugin.dashboardViews;
-                picker = makeControl(viewPicker, { label: "Saved view", options: [
-                    ["", "Custom"], ...views.map(view => [view.id, view.name]),
-                ] }, this.savedViewId);
-                picker.addEventListener("change", () => {
-                    if (refresh.disabled) return;
-                    this.savedViewId = picker.value;
-                    const view = views.find(view => view.id === this.savedViewId);
-                    this.selection = view ? { id: view.dashboard, filters: { ...view.filters } } : { id: "" };
-                    void update();
+        const actions = node(content, "div", undefined, "goal-metadata-dashboard-actions");
+        const manage = node(actions, "button", "Manage dashboards");
+        manage.type = "button";
+        const refresh = node(actions, "button", "Refresh");
+        refresh.type = "button";
+        const save = node(actions, "button", "Save view");
+        save.type = "button";
+        const viewPicker = node(content, "div", undefined, "goal-dashboard-saved-views");
+        const body = node(content, "div", undefined, "goal-metadata-dashboard-body");
+        let picker;
+        const update = async () => {
+            if (refresh.disabled) return;
+            refresh.disabled = true;
+            save.disabled = true;
+            if (picker) picker.disabled = true;
+            body.replaceChildren();
+            try {
+                await dashboard({
+                    app: this.plugin.app,
+                    container: body,
+                    dashboards: this.plugin.dashboards,
+                    selection: this.selection,
+                    profile: this.plugin.profile,
+                    profiles: this.plugin.savedProfiles(),
+                    noteDashboardFor: file => this.plugin.noteAssignment(file, "dashboard"),
                 });
-            };
-            showPicker();
-            this.registerDomEvent(save, "click", async () => {
-                const result = await this.plugin.saveDashboardView({ id: this.selection.id, filters: { ...this.selection.filters } }, this.savedViewId);
-                if (!result) return;
-                this.savedViewId = result;
-                showPicker();
+            } catch (error) {
+                body.replaceChildren();
+                errorMessage(body).textContent = error.message;
+            } finally {
+                refresh.disabled = false;
+                save.disabled = false;
+                if (picker) picker.disabled = false;
+            }
+        };
+        const showPicker = () => {
+            viewPicker.replaceChildren();
+            const views = this.plugin.dashboardViews;
+            picker = makeControl(viewPicker, { label: "Saved view", options: [
+                ["", "Custom"], ...views.map(view => [view.id, view.name]),
+            ] }, this.savedViewId);
+            picker.addEventListener("change", () => {
+                if (refresh.disabled) return;
+                this.savedViewId = picker.value;
+                const view = views.find(view => view.id === this.savedViewId);
+                this.selection = view ? { id: view.dashboard, filters: { ...view.filters } } : { id: "" };
+                void update();
             });
-            this.registerDomEvent(refresh, "click", () => void update());
-            this.registerDomEvent(manage, "click", () => this.plugin.manageDashboards().then(changed => {
-                if (changed) void update();
-            }));
-            void update();
-        }
+        };
+        showPicker();
+        this.registerDomEvent(save, "click", async () => {
+            const result = await this.plugin.saveDashboardView({ id: this.selection.id, filters: { ...this.selection.filters } }, this.savedViewId);
+            if (!result) return;
+            this.savedViewId = result;
+            showPicker();
+        });
+        this.registerDomEvent(refresh, "click", () => void update());
+        this.registerDomEvent(manage, "click", () => this.plugin.manageDashboards().then(changed => {
+            if (changed) void update();
+        }));
+        void update();
     }
-}
-
-class GoalGeneratorView extends GoalToolView {
-    static kind = "generator";
-}
-
-class GoalDashboardView extends GoalToolView {
-    static kind = "dashboard";
 }
 
 class GoalMetadataPlugin extends Plugin {
@@ -951,8 +841,8 @@ class GoalMetadataPlugin extends Plugin {
         this.registerEvent(this.app.vault.on("delete", file =>
             this.remapNoteAssignments(file.path, null)));
         this.addSettingTab(new GoalMetadataSettings(this.app, this));
-        this.registerView(toolViews.generator.type, leaf => new GoalGeneratorView(leaf, this));
-        this.registerView(toolViews.dashboard.type, leaf => new GoalDashboardView(leaf, this));
+        this.registerView(dashboardViewType, leaf => new GoalDashboardView(leaf, this));
+        workspace.onLayoutReady(() => workspace.detachLeavesOfType("goal-metadata-generator"));
 
         for (const [action, name] of Object.entries(commands)) {
             if (action === "dashboard") continue;
@@ -963,11 +853,10 @@ class GoalMetadataPlugin extends Plugin {
             });
         }
 
-        this.addCommand({ id: "generator", name: "Open Goal Metadata Generator", callback: () => this.openTool("generator") });
         this.addCommand({ id: "manage-dashboards", name: "Manage Goals Dashboards", callback: () => this.manageDashboards() });
         this.addCommand({ id: "note-configuration", name: "Set Note Goal Configuration", callback: () => this.setNoteAssignment("configuration") });
         this.addCommand({ id: "note-dashboard", name: "Set Note Goals Dashboard", callback: () => this.setNoteAssignment("dashboard") });
-        this.addCommand({ id: "dashboard", name: commands.dashboard, callback: () => this.openTool("dashboard") });
+        this.addCommand({ id: "dashboard", name: commands.dashboard, callback: () => this.openDashboard() });
     }
 
     get dashboards() { return Array.isArray(this.data.dashboards) ? this.data.dashboards : []; }
@@ -1077,6 +966,43 @@ class GoalMetadataPlugin extends Plugin {
         const configurations = id ? this.configurations.map(item => item.id === id ? entry : item)
             : [...this.configurations, entry];
         return this.saveConfiguration({ configurations }).then(() => configId);
+    }
+
+    async profileUsage(id) {
+        const files = this.app.vault.getMarkdownFiles();
+        const assigned = files.filter(file => this.noteAssignment(file, "configuration") === id).map(file => file.path);
+        let unreadable = 0;
+        const marked = await Promise.all(files.map(async file => {
+            try {
+                const source = await this.app.vault.cachedRead(file);
+                const marker = `data-goal-profile="${id}"`;
+                if (!source.includes(marker)) return null;
+                for (const heading of readHeadings(source)) {
+                    const block = source.slice(heading.body, heading.end).trimStart();
+                    if (block.startsWith('<div class="goal-meta"') && block.slice(0, block.indexOf(">")).includes(marker)) {
+                        return file.path;
+                    }
+                }
+            } catch {
+                unreadable++;
+            }
+            return null;
+        }));
+        return { assigned, styled: marked.filter(Boolean), unreadable };
+    }
+
+    deleteProfile(id) {
+        return this.saveConfiguration(data => {
+            if (!id || !this.configurations.some(item => item.id === id)) throw new Error("Select a saved configuration to delete.");
+            const noteConfigurations = { ...data.noteConfigurations };
+            for (const [path, assigned] of Object.entries(noteConfigurations)) {
+                if (assigned === id) noteConfigurations[path] = "";
+            }
+            for (const file of this.app.vault.getMarkdownFiles()) {
+                if (this.noteAssignment(file, "configuration") === id) noteConfigurations[file.path] = "";
+            }
+            return { configurations: this.configurations.filter(item => item.id !== id), noteConfigurations };
+        });
     }
 
     async setNoteAssignment(type) {
@@ -1223,21 +1149,54 @@ class GoalMetadataPlugin extends Plugin {
         }
     }
 
-    async openTool(kind) {
+    async openDashboard() {
         const { workspace } = this.app;
-        const { type } = toolViews[kind];
         try {
-            let [leaf] = workspace.getLeavesOfType(type);
+            let [leaf] = workspace.getLeavesOfType(dashboardViewType);
             if (!leaf) {
-                if (kind === "generator") this.generatorProfileId = this.profileFor(workspace.getActiveFile()).id;
                 leaf = workspace.getLeaf("tab");
-                await leaf.setViewState({ type, active: true });
+                await leaf.setViewState({ type: dashboardViewType, active: true });
             }
             await workspace.revealLeaf(leaf);
         } catch (error) {
             new Notice(error.message, 5500);
         }
     }
+}
+
+function profileDifferences(current, fallback) {
+    const differences = [];
+    const add = (label, before, after) => {
+        if (before !== after) differences.push({ label, before, after });
+    };
+    const quarter = preferences => ({
+        current: `Current quarter (${currentQuarter()})`, fixed: preferences.fixedQuarter, tbd: "TBD",
+    })[preferences.quarterMode];
+    const palette = ({ background, foreground }) => `background ${background}, text ${foreground}`;
+    add("Default owner", current.owner, fallback.owner);
+    add("Default status", current.status, fallback.status);
+    add("Default priority", buildProfile(current).priorityLabel(current.priority), buildProfile(fallback).priorityLabel(fallback.priority));
+    add("Default target quarter", quarter(current), quarter(fallback));
+    for (const { key, label } of ratingTypes) {
+        add(`${label} field`, current.ratings[key] ? "Available" : "Hidden", fallback.ratings[key] ? "Available" : "Hidden");
+        current.ratingPalettes[key].forEach((colors, i) =>
+            add(`${label} rank ${i + 1} colors`, palette(colors), palette(fallback.ratingPalettes[key][i])));
+    }
+    current.priorities.forEach((priority, i) => {
+        add(`P${i + 1} name`, priority.name, fallback.priorities[i].name);
+        add(`P${i + 1} colors`, palette(priority), palette(fallback.priorities[i]));
+    });
+    for (const [key, label] of Object.entries(linkCaptions)) {
+        add(`${label} link text`, current.linkLabels[key], fallback.linkLabels[key]);
+    }
+    const items = values => values.join(", ");
+    add("Available statuses", items(current.statuses), items(fallback.statuses));
+    add("Statuses that satisfy dependencies", items(current.completeStatuses), items(fallback.completeStatuses));
+    add("Goal section headings", items(current.headings), items(fallback.headings));
+    add("Decision log heading", current.decisionHeading, fallback.decisionHeading);
+    add("Review checklist heading", current.reviewHeading, fallback.reviewHeading);
+    add("Review checklist items", items(current.reviewItems), items(fallback.reviewItems));
+    return differences;
 }
 
 class GoalMetadataSettings extends PluginSettingTab {
@@ -1289,6 +1248,50 @@ class GoalMetadataSettings extends PluginSettingTab {
         setting("Configuration name", "Enter a name to save a reusable configuration.").addText(input =>
             input.setValue(draftEntry.name).onChange(value => { draftEntry.name = value; }));
 
+        if (this.selectedConfiguration) {
+            const id = this.selectedConfiguration;
+            const savedName = this.plugin.configurations.find(item => item.id === id)?.name;
+            if (savedName) {
+                const remove = setting("Delete configuration", "Review how this configuration is used before deleting it.");
+                const preview = node(containerEl, "div", undefined, "goal-configuration-delete-preview");
+                remove.addButton(button => button.setButtonText("Delete configuration").setWarning().onClick(async () => {
+                    if (this.saving) return;
+                    button.setDisabled(true);
+                    remove.setDesc("Checking which notes use this configuration…");
+                    try {
+                        const usage = await this.plugin.profileUsage(id);
+                        if (this.selectedConfiguration !== id || !preview.isConnected) return;
+                        const saved = this.plugin.configurations.find(item => item.id === id);
+                        if (!saved) throw new Error("This configuration was already removed.");
+                        const differences = profileDifferences(normalizePreferences(saved.preferences), this.plugin.preferences);
+                        this.renderDeletePreview(preview, savedName, usage, differences);
+                        remove.setDesc("Review these effects before confirming deletion.");
+                        remove.clear();
+                        remove.addButton(cancel => cancel.setButtonText("Cancel").onClick(() => this.show(draftEntry)));
+                        remove.addButton(confirm => confirm.setButtonText("Confirm deletion").setWarning().onClick(async () => {
+                            if (this.saving) return;
+                            this.saving = true;
+                            confirm.setDisabled(true);
+                            try {
+                                await this.plugin.deleteProfile(id);
+                                this.drafts.delete(id);
+                                if (this.selectedConfiguration === id) this.openConfiguration("");
+                                new Notice("Goal Metadata configuration deleted.");
+                            } catch (error) {
+                                confirm.setDisabled(false);
+                                new Notice(error.message, 5500);
+                            } finally {
+                                this.saving = false;
+                            }
+                        }));
+                    } catch (error) {
+                        button.setDisabled(false);
+                        remove.setDesc(error.message);
+                    }
+                }));
+            }
+        }
+
         const colorControls = (row, swatch, label) => {
             for (const [key, part] of [["background", "background"], ["foreground", "text color"]]) {
                 row.addColorPicker(input => input.setValue(swatch[key]).onChange(value => {
@@ -1311,15 +1314,24 @@ class GoalMetadataSettings extends PluginSettingTab {
 
         heading("Optional rankings");
         for (const { key, label } of ratingTypes) {
-            setting(label, "Rank 1 is highest.").addToggle(input =>
-                input.setValue(draft.ratings[key]).onChange(value => { draft.ratings[key] = value; }));
-            const palette = node(containerEl, "details", undefined, "goal-rating-palette");
-            node(palette, "summary", label + " badge colors");
+            const group = node(containerEl, "div", undefined, "goal-rating-settings");
+            const toggle = new Setting(group).setName(label).setDesc("Rank 1 is highest.");
+            const palette = node(group, "div", undefined, "goal-rating-palette");
+            const contents = node(palette, "div", undefined, "goal-rating-palette-content");
+            const setExpanded = enabled => {
+                palette.classList.toggle("is-open", enabled);
+                palette.inert = !enabled;
+            };
             for (const [i, swatch] of draft.ratingPalettes[key].entries()) {
                 const rank = `Rank ${i + 1}`;
-                const row = new Setting(palette).setName(rank).setDesc("Badge background and text color.");
+                const row = new Setting(contents).setName(rank).setDesc("Badge background and text color.");
                 colorControls(row, swatch, label + " " + rank);
             }
+            toggle.addToggle(input => input.setValue(draft.ratings[key]).onChange(value => {
+                draft.ratings[key] = value;
+                setExpanded(value);
+            }));
+            setExpanded(draft.ratings[key]);
         }
 
         heading("Link labels");
@@ -1330,12 +1342,10 @@ class GoalMetadataSettings extends PluginSettingTab {
         }
 
         heading("New goal defaults");
-        for (const [label, key] of [["Default priority", "priority"], ["Generator priority", "generatorPriority"]]) {
-            setting(label).addDropdown(input => {
-                draft.priorities.forEach((_, i) => input.addOption(String(i + 1), `P${i + 1}`));
-                input.setValue(draft[key]).onChange(value => { draft[key] = value; });
-            });
-        }
+        setting("Default priority").addDropdown(input => {
+            draft.priorities.forEach((_, i) => input.addOption(String(i + 1), `P${i + 1}`));
+            input.setValue(draft.priority).onChange(value => { draft.priority = value; });
+        });
         text("Default owner", "owner");
         lines("Available statuses", "statuses");
         text("Default status", "status", "Enter one of the available statuses.");
@@ -1384,6 +1394,34 @@ class GoalMetadataSettings extends PluginSettingTab {
         }));
         actions.addButton(button => button.setButtonText("Save as new configuration").onClick(() => save(true)));
         actions.addButton(button => button.setButtonText("Save changes").setCta().onClick(() => save(false)));
+    }
+
+    renderDeletePreview(container, name, usage, differences) {
+        const used = [...new Set([...usage.assigned, ...usage.styled])].sort();
+        const summary = used.length ? `“${name}” is used in ${used.length} ${used.length === 1 ? "note" : "notes"}.`
+            : `No use of “${name}” was found in the scanned notes.`;
+        node(container, "strong", summary);
+        if (used.length) {
+            const names = node(container, "ul");
+            for (const path of used.slice(0, 8)) node(names, "li", path);
+            if (used.length > 8) node(names, "li", `And ${used.length - 8} more`);
+        }
+        if (usage.assigned.length) node(container, "p",
+            `Assigned notes (${usage.assigned.length}) will use the vault default for new and edited goals.`);
+        if (usage.styled.length) node(container, "p",
+            `Existing strips in ${usage.styled.length} ${usage.styled.length === 1 ? "note will" : "notes will"} use the vault palette. Saved goal text and ratings stay in the notes.`);
+        if (usage.unreadable) node(container, "p", `Could not scan ${usage.unreadable} ${usage.unreadable === 1 ? "note" : "notes"} for existing strips.`);
+        if (!differences.length) {
+            node(container, "p", "The saved settings already match the vault default.");
+            return;
+        }
+        node(container, "strong", "Changes when using the vault default");
+        const list = node(container, "ul");
+        for (const { label, before, after } of differences) {
+            const item = node(list, "li");
+            node(item, "strong", label);
+            node(item, "div", `${before} → ${after}`);
+        }
     }
 
     validate(draft) {
